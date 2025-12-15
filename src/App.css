@@ -1,12 +1,28 @@
-.word-input {
+:root {
+    --gap: 5px;
+}
+
+#input {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: var(--gap);
+}
+.word {
     display: flex;
     flex-flow: row nowrap;
     /* box-shadow: inset 0 0 0 1px red; */
-    gap: 5px;
+    gap: var(--gap);
 }
-.letter-input {
+.letter {
     aspect-ratio: 1;
     width: 3em;
-    display: flex;
+    display: grid;
     place-items: center;
+
+    border: 1px solid gray;
+    border-radius: 10%;
+
+    & span {
+        display: block;
+    }
 }
