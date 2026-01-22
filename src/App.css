@@ -25,4 +25,31 @@
     & span {
         display: block;
     }
+
+    &.yellow {
+        background: oklch(50% 40% 100deg);
+    }
+    &.green {
+        background: oklch(50% 40% 150deg);
+    }
+    &.active {
+        border-color: white;
+    }
 }
+
+.word:not(.active) {
+    background: hsl(0 0 0);
+}
+
+/* .word {
+    position: relative;
+}
+.active:before {
+    content: '';
+    position: absolute;
+    top: 0px;
+    height: 100%;
+    left: -10px;
+    width: 10px;
+    background: white;
+} */
