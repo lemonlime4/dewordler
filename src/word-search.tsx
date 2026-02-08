@@ -68,6 +68,25 @@ class Constraints {
             }
         }
     }
+
+    satisfiedBy(word: Word) {
+        const { blank, yellow, green } = this;
+        for (const i of [0, 1, 2, 3, 4] as const) {
+            if (green[i] && green[i] != word[i]) return false;
+            if (yellow[i].includes(word[i])) return false;
+
+            for (const j of [0, 1, 2, 3, 4] as const) {
+                if (blank[j].includes(word[i])) return false;
+            }
+        }
+
+        for (const j of [0, 1, 2, 3, 4] as const) {
+            if (yellow[j].length > 0 && !yellow[j].every(l => word.includes(l))) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 // todo type this to have elements of type Letter
@@ -116,23 +135,11 @@ function* wordList(): Generator<Word> {
 }
 
 export function* searchWords(guesses: WordGuess[]): Generator<Word> {
-    const { blank, yellow, green } = new Constraints(guesses);
+    const constraint = new Constraints(guesses);
     // console.log('blank:', blank, '\nyellow:', yellow, '\ngreen:', green);
 
-    outer: for (const word of wordList()) {
-        for (const i of [0, 1, 2, 3, 4] as const) {
-            if (blank[i].includes(word[i])) continue outer;
-
-            if (yellow[i].includes(word[i])) continue outer;
-
-            if (green[i] && green[i] != word[i]) continue outer;
-        }
-
-        for (const j of [0, 1, 2, 3, 4] as const) {
-            if (yellow[j].length > 0 && !yellow[j].every(l => word.includes(l))) {
-                continue outer;
-            }
-        }
+    for (const word of wordList()) {
+        if (!constraint.satisfiedBy(word)) continue;
         yield word;
     }
 }
