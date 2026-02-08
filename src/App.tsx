@@ -2,33 +2,20 @@ import { For, onCleanup } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import './App.css';
 
+import type { Letter } from './word-search';
+import { charCodeIsLetter, Color, Word } from './word-search';
+
 export default App;
 
-type Letter = string;
-
-const Color = {
-    BLANK: 0,
-    YELLOW: 1,
-    GREEN: 2,
-} as const;
-
-type Color = (typeof Color)[keyof typeof Color];
-
-type Word = {
-    letters: [Letter | null, Letter | null, Letter | null, Letter | null, Letter | null];
-    colors: [Color, Color, Color, Color, Color];
-};
-
-function makeWord(letters: Word['letters'] = [null, null, null, null, null]): Word {
-    const b = Color.BLANK;
-    return {
-        letters,
-        colors: [b, b, b, b, b],
-    };
+function makeStoreWord() {
+    return createStore(new Word())[0];
 }
-
 function App() {
-    const [words, setWords] = createStore([makeWord(), makeWord(), makeWord()]);
+    const [words, setWords] = createStore([
+        makeStoreWord(),
+        makeStoreWord(),
+        makeStoreWord(),
+    ]);
     // globalThis.words = words;
     const [active, setActive] = createStore({
         word: 0,
@@ -44,13 +31,12 @@ function App() {
         } else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
             let offset = ev.key === 'ArrowLeft' ? -1 : 1;
             setActive('letter', li => Math.max(0, Math.min(4, li + offset)));
-        } else if (ev.key === 'Delete' || (ev.key === 'Backspace' && ev.ctrlKey)) {
-            // console.log(`delete all word ${active.word}`);
+        } else if (ev.key === 'Backspace' && ev.ctrlKey) {
             setWords(active.word, 'letters', [0, 1, 2, 3, 4], null);
             setActive('letter', 0);
         } else if (ev.key === 'Backspace') {
-            if (active.word === words.length - 1 && active.letter === 4) {
-                // do nothing
+            if (words[active.word]?.letters[active.letter]) {
+                // keep active letter where it is
             } else if (active.letter > 0) {
                 setActive('letter', li => li - 1);
             } else if (active.word > 0) {
@@ -72,7 +58,7 @@ function App() {
             );
         } else {
             const letter = readLetter(ev);
-            if (letter !== undefined) {
+            if (letter) {
                 setWords(active.word, 'letters', active.letter, letter);
 
                 // advance selection
@@ -94,15 +80,12 @@ function App() {
     window.addEventListener('keydown', listener);
     onCleanup(() => window.removeEventListener('keydown', listener));
 
-    function readLetter(ev: KeyboardEvent): string | undefined {
+    function readLetter(ev: KeyboardEvent): Letter | undefined {
         if (ev.key.normalize('NFKC').length !== 1) return;
-        // console.log([...ev.key.normalize('NFKD')]);
+        console.log('NFKDed input:', [...ev.key.normalize('NFKD')]);
         return [...ev.key.normalize('NFKD')]
-            .map(s => s.toUpperCase())
-            .find(s => {
-                const n = s.codePointAt(0) ?? 0;
-                return 65 <= n && n <= 90;
-            });
+            .map(s => s.toLowerCase().charCodeAt(0) ?? 0)
+            .filter(charCodeIsLetter)[0];
     }
 
     return (
@@ -110,19 +93,19 @@ function App() {
             <h1>What the</h1>
             <div id="input">
                 <For each={words}>
-                    {({ letters, colors }, wi) => (
+                    {(word, wi) => (
                         <div class="word" classList={{ active: wi() === active.word }}>
                             {[0, 1, 2, 3, 4].map(li => (
                                 <div
                                     class="letter"
                                     classList={{
-                                        green: colors[li] === Color.GREEN,
-                                        yellow: colors[li] === Color.YELLOW,
+                                        green: word.colors[li] === Color.GREEN,
+                                        yellow: word.colors[li] === Color.YELLOW,
                                         active:
                                             wi() === active.word && li === active.letter,
                                     }}
                                 >
-                                    <span>{letters[li] ?? ''}</span>
+                                    <span>{letterToString(word.letters[li])}</span>
                                 </div>
                             ))}
                         </div>
@@ -131,4 +114,9 @@ function App() {
             </div>
         </>
     );
+}
+
+function letterToString(letter: Letter | null | undefined): string {
+    // console.log(letter);
+    return letter ? String.fromCharCode(letter - 32) : '';
 }
