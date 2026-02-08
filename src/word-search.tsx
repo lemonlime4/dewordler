@@ -20,7 +20,9 @@ type FixedSizeArray<N extends number, T, R extends T[] = []> = R['length'] exten
     ? R
     : FixedSizeArray<N, T, [T, ...R]>;
 
-export class Word {
+export type Word = FixedSizeArray<5, Letter>;
+
+export class WordGuess {
     letters: FixedSizeArray<5, Letter | null> = [null, null, null, null, null];
     colors: FixedSizeArray<5, Color> = [
         Color.BLANK,
@@ -30,48 +32,42 @@ export class Word {
         Color.BLANK,
     ];
 
-    isFilled(): this is FilledWord {
+    isFilled(): this is FilledWordGuess {
         return this.letters.every(l => l !== null);
     }
 }
 
-interface FilledWord extends Word {
-    letters: FixedSizeArray<5, Letter>;
+interface FilledWordGuess extends WordGuess {
+    letters: Word;
 }
 
-type Constraints = {
-    blank: FixedSizeArray<5, Letter[]>;
-    green: FixedSizeArray<5, Letter[]>;
-    yellow: FixedSizeArray<5, Letter[]>;
-};
+class Constraints {
+    blank: FixedSizeArray<5, Letter[]> = [[], [], [], [], []];
+    yellow: FixedSizeArray<5, Letter[]> = [[], [], [], [], []];
+    green: FixedSizeArray<5, Letter | null> = [null, null, null, null, null];
 
-function makeConstraints(words: Word[]): Constraints {
-    const constraints: Constraints = {
-        blank: [[], [], [], [], []],
-        green: [[], [], [], [], []],
-        yellow: [[], [], [], [], []],
-    };
+    constructor(guesses: WordGuess[]) {
+        // TODO handle self contradicting input
 
-    for (const word of words) {
-        if (!word.isFilled()) continue;
+        for (const guess of guesses) {
+            if (!guess.isFilled()) continue;
 
-        for (const i of [0, 1, 2, 3, 4] as const) {
-            const color = word.colors[i];
-            const letter = word.letters[i];
+            for (const i of [0, 1, 2, 3, 4] as const) {
+                const color = guess.colors[i];
+                const letter = guess.letters[i];
 
-            if (color == Color.BLANK) {
-                constraints.blank[i].push(letter);
-            }
-            if (color == Color.GREEN) {
-                constraints.green[i].push(letter);
-            }
-            if (color == Color.YELLOW) {
-                constraints.yellow[i].push(letter);
+                if (color == Color.BLANK) {
+                    this.blank[i].push(letter);
+                }
+                if (color == Color.GREEN) {
+                    this.green[i] = letter;
+                }
+                if (color == Color.YELLOW) {
+                    this.yellow[i].push(letter);
+                }
             }
         }
     }
-
-    return constraints;
 }
 
 // todo type this to have elements of type Letter
@@ -104,8 +100,41 @@ const wordListBytes = await fetch('src/assets/valid-wordle-words.txt')
                 })(),
             ),
     );
-const nWords = wordListBytes.length / 5;
-if (!Number.isInteger(nWords))
-    throw new Error(`Uint8Array wordListBytes has invalid length ${nWords}`);
+if (wordListBytes.length % 5 != 0)
+    throw new Error(`Uint8Array wordListBytes has invalid length`);
 
-Object.assign(globalThis, { words: wordListBytes });
+function* wordList(): Generator<Word> {
+    for (let i = 0; i < wordListBytes.length; i += 5) {
+        yield [
+            wordListBytes[i + 0] as Letter,
+            wordListBytes[i + 1] as Letter,
+            wordListBytes[i + 2] as Letter,
+            wordListBytes[i + 3] as Letter,
+            wordListBytes[i + 4] as Letter,
+        ];
+    }
+}
+
+export function* searchWords(guesses: WordGuess[]): Generator<Word> {
+    const { blank, yellow, green } = new Constraints(guesses);
+    // console.log('blank:', blank, '\nyellow:', yellow, '\ngreen:', green);
+
+    outer: for (const word of wordList()) {
+        for (const i of [0, 1, 2, 3, 4] as const) {
+            if (blank[i].includes(word[i])) continue outer;
+
+            if (yellow[i].includes(word[i])) continue outer;
+
+            if (green[i] && green[i] != word[i]) continue outer;
+        }
+
+        for (const j of [0, 1, 2, 3, 4] as const) {
+            if (yellow[j].length > 0 && !yellow[j].every(l => word.includes(l))) {
+                continue outer;
+            }
+        }
+        yield word;
+    }
+}
+
+Object.assign(globalThis, { wordList });

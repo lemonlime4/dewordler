@@ -41,15 +41,17 @@
     background: hsl(0 0 0);
 }
 
-/* .word {
-    position: relative;
+#results {
+    padding: 1em 2em;
+    width: min(50%, 100% - 8em);
+    background: rgb(0 0 0 / 0.5);
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    gap: 0.5em;
 }
-.active:before {
-    content: '';
-    position: absolute;
-    top: 0px;
-    height: 100%;
-    left: -10px;
-    width: 10px;
-    background: white;
-} */
+
+.result {
+    padding: 0.25em 0.5em;
+    background: rgb(255 255 255 / 0.1);
+}
