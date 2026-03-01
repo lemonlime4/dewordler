@@ -16,8 +16,10 @@
 body {
     margin: 0;
     display: flex;
-    flex-flow: column nowrap;
+    flex-flow: row-reverse nowrap;
     place-items: center;
+    place-content: center;
+    gap: 2em;
     min-width: 320px;
     min-height: 100vh;
 }

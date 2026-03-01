@@ -1,39 +1,81 @@
-type Enumerate<N extends number, Acc extends number[] = []> = Acc['length'] extends N
-    ? Acc[number]
-    : Enumerate<N, [...Acc, Acc['length']]>;
-type IntRange<F extends number, T extends number> = Exclude<Enumerate<T>, Enumerate<F>>;
-export type Letter = IntRange<97, 123>;
-
-export function charCodeIsLetter(n: number): n is Letter {
-    return Number.isInteger(n) && 97 <= n && n <= 122;
+export type AsciiLowercaseChar = string & { readonly __tag: unique symbol };
+export function isAsciiLowercaseChar(s: string): s is AsciiLowercaseChar {
+    const inRange = (cc: number) => 97 <= cc && cc <= 122;
+    return s.length === 1 && inRange(s.charCodeAt(0));
 }
 
-export const Color = {
-    BLANK: 0,
-    YELLOW: 1,
-    GREEN: 2,
-} as const;
+type Indices<N extends number, Acc extends number[] = []> = Acc['length'] extends N
+    ? Acc
+    : Indices<N, [...Acc, Acc['length']]>;
 
-export type Color = (typeof Color)[keyof typeof Color];
+/** Letter index for A-Z */
+export type Letter = Indices<26>[number];
 
-type FixedSizeArray<N extends number, T, R extends T[] = []> = R['length'] extends N
+function intRange<N extends number>(n: N): Indices<N> {
+    return [...Array(n).keys()] as Indices<N>;
+}
+export const intRange5 = intRange(5);
+export const intRange26 = intRange(26);
+
+export function toLetter(c: AsciiLowercaseChar): Letter {
+    return (c.charCodeAt(0) - 97) as Letter;
+}
+
+export function toChar(l: Letter): AsciiLowercaseChar {
+    return String.fromCharCode(l + 97) as AsciiLowercaseChar;
+}
+
+/** Blank, green or yellow color */
+export type Color = 0 | 1 | 2;
+export const Color = Object.freeze({
+    BLANK: 0 as Color,
+    YELLOW: 1 as Color,
+    GREEN: 2 as Color,
+} as const);
+
+/** Fixed size array type */
+type FSArray<N extends number, T, R extends T[] = []> = R['length'] extends N
     ? R
-    : FixedSizeArray<N, T, [T, ...R]>;
+    : FSArray<N, T, [T, ...R]>;
 
-export type Word = FixedSizeArray<5, Letter>;
+function makeFSArray<N extends number, T>(n: N, x: T): FSArray<N, T> {
+    return Array.from({ length: n }, () => structuredClone(x)) as FSArray<N, T>;
+}
+
+export type PartialWord = FSArray<5, Letter | null>;
+export type Word = FSArray<5, Letter>;
+export type Colors = FSArray<5, Color>;
 
 export class WordGuess {
-    letters: FixedSizeArray<5, Letter | null> = [null, null, null, null, null];
-    colors: FixedSizeArray<5, Color> = [
-        Color.BLANK,
-        Color.BLANK,
-        Color.BLANK,
-        Color.BLANK,
-        Color.BLANK,
-    ];
+    letters: PartialWord = makeFSArray(5, null);
+    colors: Colors = makeFSArray(5, Color.BLANK);
 
     isFilled(): this is FilledWordGuess {
         return this.letters.every(l => l !== null);
+    }
+
+    assignColor(solution: Word): Colors {
+        let soln: PartialWord = [...solution];
+        const colors = this.colors;
+        const guess = this.letters;
+
+        for (const i of intRange5) {
+            if (guess[i] === soln[i]) {
+                colors[i] = Color.GREEN;
+                soln[i] = null;
+            }
+        }
+        for (const i of intRange5) {
+            if (colors[i] !== Color.GREEN) {
+                const j = soln.indexOf(guess[i]);
+                if (j !== -1) {
+                    colors[i] = Color.YELLOW;
+                    soln[j] = null;
+                }
+            }
+        }
+
+        return colors;
     }
 }
 
@@ -41,65 +83,83 @@ interface FilledWordGuess extends WordGuess {
     letters: Word;
 }
 
-class Constraints {
-    blank: FixedSizeArray<5, Letter[]> = [[], [], [], [], []];
-    yellow: FixedSizeArray<5, Letter[]> = [[], [], [], [], []];
-    green: FixedSizeArray<5, Letter | null> = [null, null, null, null, null];
+/** Wordle input was impossible */
+export class WordleInputError extends Error {}
+
+export class Constraints {
+    exclude = makeFSArray(5, makeFSArray(26, false));
+    include = makeFSArray(26, 0);
+    green = makeFSArray(5, null as Letter | null);
 
     constructor(guesses: WordGuess[]) {
-        // TODO handle self contradicting input
-
+        const blank = makeFSArray(26, false);
         for (const guess of guesses) {
             if (!guess.isFilled()) continue;
 
-            for (const i of [0, 1, 2, 3, 4] as const) {
+            const include = makeFSArray(26, 0);
+            for (const i of intRange5) {
                 const color = guess.colors[i];
-                const letter = guess.letters[i];
+                const l = guess.letters[i];
 
-                if (color == Color.BLANK) {
-                    this.blank[i].push(letter);
+                if (color === Color.BLANK) {
+                    this.exclude[i][l] = true;
+                    blank[l] = true;
                 }
-                if (color == Color.GREEN) {
-                    this.green[i] = letter;
+                if (color === Color.GREEN) {
+                    if (this.green[i] !== null && this.green[i] != l) {
+                        throw new WordleInputError(
+                            'Contradictory green letters in input',
+                        );
+                    }
+                    this.green[i] = l;
+                    include[l] += 1;
                 }
-                if (color == Color.YELLOW) {
-                    this.yellow[i].push(letter);
+                if (color === Color.YELLOW) {
+                    this.exclude[i][l] = true;
+                    include[l] += 1;
                 }
             }
+            for (const l of intRange26) {
+                this.include[l] = Math.max(this.include[l], include[l]);
+            }
+
+            if (5 < this.include.reduce((acc, n) => acc + n, 0)) {
+                throw new WordleInputError('More than 5 letters required');
+            }
+            // error when more letters are required than available
+        }
+        // propagate blank letters to other parts
+        for (const l of intRange26) {
+            // if (blank[l])
         }
     }
 
     satisfiedBy(word: Word) {
-        const { blank, yellow, green } = this;
-        for (const i of [0, 1, 2, 3, 4] as const) {
-            if (green[i] && green[i] != word[i]) return false;
-            if (yellow[i].includes(word[i])) return false;
-
-            for (const j of [0, 1, 2, 3, 4] as const) {
-                if (blank[j].includes(word[i])) return false;
-            }
+        const { exclude, include, green } = this;
+        for (const i of intRange5) {
+            if (green[i] !== null && green[i] !== word[i]) return false;
+            if (exclude[i][word[i]]) return false;
         }
 
-        for (const j of [0, 1, 2, 3, 4] as const) {
-            if (yellow[j].length > 0 && !yellow[j].every(l => word.includes(l))) {
-                return false;
-            }
+        if (!include.every((n, yl) => n <= word.filter(wl => wl == yl).length)) {
+            return false;
         }
         return true;
     }
 }
 
 // todo type this to have elements of type Letter
-const wordListBytes = await fetch('src/assets/valid-wordle-words.txt')
+const wordListBytes = await fetch('/valid-wordle-words.txt')
     .then(r => r.text())
     .then(
         wordListStr =>
             new Uint8Array(
                 (function* (): Generator<Letter> {
+                    // console.log(wordListStr);
                     let nLetters = 0;
                     for (const char of wordListStr) {
-                        if (char == '\n' || char == '\r') {
-                            if (nLetters != 5 && nLetters != 0) {
+                        if (char === '\n' || char === '\r') {
+                            if (nLetters !== 5 && nLetters !== 0) {
                                 throw new Error(
                                     `Word of length ${nLetters} in word list.`,
                                 );
@@ -107,23 +167,23 @@ const wordListBytes = await fetch('src/assets/valid-wordle-words.txt')
                             nLetters = 0;
                         } else {
                             nLetters++;
-                            let c = char.charCodeAt(0);
-                            if (!charCodeIsLetter(c)) {
+                            if (!isAsciiLowercaseChar(char)) {
                                 throw new Error(
-                                    `Invalid non-whitespace char '${char}' (${c}) found in word list.`,
+                                    `Invalid non-whitespace char '${char}' (code point ${char.codePointAt(0)}) found in word list.`,
                                 );
                             }
-                            yield c;
+                            yield toLetter(char);
                         }
                     }
                 })(),
             ),
     );
-if (wordListBytes.length % 5 != 0)
+if (wordListBytes.length % 5 !== 0)
     throw new Error(`Uint8Array wordListBytes has invalid length`);
 
-function* wordList(): Generator<Word> {
-    for (let i = 0; i < wordListBytes.length; i += 5) {
+export const wordListLength = Math.floor(wordListBytes.length / 5);
+export function* wordList(): Generator<Word> {
+    for (let i = 0; i < wordListLength * 5; i += 5) {
         yield [
             wordListBytes[i + 0] as Letter,
             wordListBytes[i + 1] as Letter,
@@ -134,14 +194,13 @@ function* wordList(): Generator<Word> {
     }
 }
 
-export function* searchWords(guesses: WordGuess[]): Generator<Word> {
-    const constraint = new Constraints(guesses);
+export function* searchWords(constraints: Constraints): Generator<Word> {
     // console.log('blank:', blank, '\nyellow:', yellow, '\ngreen:', green);
 
     for (const word of wordList()) {
-        if (!constraint.satisfiedBy(word)) continue;
+        if (!constraints.satisfiedBy(word)) continue;
         yield word;
     }
 }
 
-Object.assign(globalThis, { wordList });
+Object.assign(globalThis, { Color, Constraints });

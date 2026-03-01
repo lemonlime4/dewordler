@@ -26,32 +26,62 @@
         display: block;
     }
 
-    &.yellow {
-        background: oklch(50% 40% 100deg);
-    }
-    &.green {
-        background: oklch(50% 40% 150deg);
-    }
     &.active {
         border-color: white;
     }
+}
+.yellow {
+    background: oklch(50% 40% 100deg);
+}
+.green {
+    background: oklch(50% 40% 150deg);
 }
 
 .word:not(.active) {
     background: hsl(0 0 0);
 }
 
-#results {
+#results,
+#error {
+    margin-top: 1em;
     padding: 1em 2em;
-    width: min(50%, 100% - 8em);
-    background: rgb(0 0 0 / 0.5);
     display: flex;
     flex-flow: row wrap;
     justify-content: center;
     gap: 0.5em;
 }
 
+#results {
+    background: rgb(0 0 0 / 0.5);
+}
+#error {
+    background: rgb(255 0 0 / 0.5);
+}
+
 .result {
     padding: 0.25em 0.5em;
     background: rgb(255 255 255 / 0.1);
+}
+.result-overflow {
+    padding: 0.25em 0.5em;
+    padding-right: 0em;
+}
+
+/* debug */
+#mismatches {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1em;
+    font-family: monospace;
+
+    & > :first-child {
+        color: red;
+        grid-column: 1 / 3;
+    }
+}
+body > section:not(#mismatches) {
+    width: 30em;
+    display: flex;
+    flex-flow: column nowrap;
+    place-items: center;
 }
