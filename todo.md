@@ -1,1 +1,0 @@
-- figure out the actual logic of how words get colored, current impl is wrong in some cases

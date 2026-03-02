@@ -5,8 +5,8 @@ import './App.css';
 import type { Letter, Word } from './word-search';
 import {
     Color,
-    Constraints,
-    intRange5,
+    Constraint,
+    indices5,
     isAsciiLowercaseChar,
     searchWords,
     toChar,
@@ -27,16 +27,15 @@ function App() {
     Object.assign(globalThis, { guesses });
 
     {
-        const g = JSON.parse(
+        const gs = JSON.parse(
             localStorage.getItem('wordleinputstate') ?? '',
         ) as WordGuess[];
 
         // '[{"colors":[0,0,0,2,2],"letters":[2,11,20,4,3]},{"colors":[0,0,1,2,2],"letters":[19,0,12,4,3]},{"colors":[1,0,0,2,2],"letters":[12,14,21,4,3]}]',
-        for (let i = 0; i < g.length; i++) {
-            const gi = g[i] as WordGuess;
-            setGuesses(i, 'letters', gi.letters);
-            setGuesses(i, 'colors', gi.colors);
-        }
+        gs.forEach((g, i) => {
+            setGuesses(i, 'letters', g.letters);
+            setGuesses(i, 'colors', g.colors);
+        });
         localStorage.setItem('wordleinputstate', JSON.stringify(guesses));
         createEffect(() => {
             localStorage.setItem('wordleinputstate', JSON.stringify(guesses));
@@ -98,48 +97,36 @@ function App() {
                 }
             }
         }
-        if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-        }
     };
     window.addEventListener('keydown', listener);
     onCleanup(() => window.removeEventListener('keydown', listener));
 
-    const MAX_RESULTS_COUNT = 10;
+    const MAX_RESULTS_COUNT = 15;
     const [results, setResults] = createSignal<string[]>([]);
     const [overflow, setOverflow] = createSignal(0);
     const [error, setError] = createSignal('');
 
+    const MAX_MISMATCHES_COUNT = 10;
     const [mismatches, setMismatches] = createStore<[Word, WordGuess][]>([]);
-    // setMismatches(
-    //     produce(mm =>
-    //         mm.push(
-    //             [[0, 1, 2, 3, 4], guesses[0] as WordGuess],
-    //             [[5, 6, 7, 8, 9], guesses[1] as WordGuess],
-    //             [[10, 11, 12, 13, 14], guesses[2] as WordGuess],
-    //         ),
-    //     ),
-    // );
 
     function updateResults() {
         console.log('updating results');
-        // debug
-        // const individualGuesses = guesses.map(
-        //     g => [Object.assign(new WordGuess(), g), new Constraints([g])] as const,
-        // );
         const mm: [Word, WordGuess][] = [];
         try {
             const results: string[] = [];
             let n = 0;
-            for (const word of searchWords(new Constraints(guesses))) {
+            const filledGuesses = guesses.filter(guess => guess.isFilled());
+            const constraint = filledGuesses.reduce(
+                (acc, c) => acc.merge(new Constraint(c)),
+                new Constraint(),
+            );
+            for (const word of searchWords(constraint)) {
                 n += 1;
                 if (results.length < MAX_RESULTS_COUNT) {
                     results.push(word.map(toChar).join('').toLowerCase());
-
-                    // debug
-                    for (const g of guesses) {
-                        // if (!cons.satisfiedBy(word)) {
-                        console.log();
+                }
+                if (mm.length < MAX_MISMATCHES_COUNT) {
+                    for (const g of filledGuesses) {
                         const guess = Object.assign(
                             new WordGuess(),
                             JSON.parse(JSON.stringify(g)),
@@ -167,17 +154,16 @@ function App() {
     return (
         <>
             <section id="mismatches">
-                <span>Search debug</span>
+                <span>Debugging</span>
                 <span>Solution</span>
                 <span>Guess</span>
                 <For each={mismatches}>
                     {([solution, guess]) => {
-                        // let [solution, guess] = accessor();
                         return (
                             <>
                                 <span>{solution.map(toChar).join('')}</span>
                                 <div>
-                                    <For each={intRange5}>
+                                    <For each={indices5}>
                                         {i => (
                                             <span
                                                 classList={{
@@ -208,7 +194,7 @@ function App() {
                                 class="word"
                                 classList={{ active: wi() === active.word }}
                             >
-                                {intRange5.map(li => (
+                                {indices5.map(li => (
                                     <div
                                         class="letter"
                                         classList={{
@@ -238,10 +224,10 @@ function App() {
                 </Show>
                 <div id="results">
                     {results().map(s => (
-                        <span class="result">{s}</span>
+                        <span class="result-item">{s}</span>
                     ))}
                     <Show when={overflow() !== 0}>
-                        <span class="result-overflow">{overflow()} more words...</span>
+                        <span id="result-overflow">{overflow()} more words...</span>
                     </Show>
                 </div>
             </section>
@@ -251,7 +237,7 @@ function App() {
 
 function readLetter(ev: KeyboardEvent): Letter | undefined {
     // filter out control keys
-    if (/[\x00-\x7f]{2,}/.test(ev.key)) return;
+    if (/^[\x00-\x7f]{2,}$/.test(ev.key)) return;
 
     const letters = [...ev.key.normalize('NFKD')]
         .map(s => s.toLowerCase())

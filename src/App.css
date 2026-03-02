@@ -58,11 +58,11 @@
     background: rgb(255 0 0 / 0.5);
 }
 
-.result {
+.result-item {
     padding: 0.25em 0.5em;
     background: rgb(255 255 255 / 0.1);
 }
-.result-overflow {
+#result-overflow {
     padding: 0.25em 0.5em;
     padding-right: 0em;
 }
