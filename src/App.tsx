@@ -2,18 +2,18 @@ import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import './App.css';
 
-import type { Letter, Word } from './word-search';
+import { Constraint, WordleInputError } from './constraint';
 import {
     Color,
-    Constraint,
     indices5,
     isAsciiLowercaseChar,
-    searchWords,
+    type Letter,
     toChar,
     toLetter,
+    type Word,
     WordGuess,
-    WordleInputError,
-} from './word-search';
+} from './word';
+import { searchWords } from './wordList';
 
 export default App;
 
@@ -63,7 +63,7 @@ function App() {
             setGuesses(active.word, 'letters', [0, 1, 2, 3, 4], null);
             setActive('letter', 0);
         } else if (ev.key === 'Backspace') {
-            if (guesses[active.word]?.letters[active.letter]) {
+            if (guesses[active.word]?.letters[active.letter] !== null) {
                 // keep active letter where it is
             } else if (active.letter > 0) {
                 setActive('letter', li => li - 1);
