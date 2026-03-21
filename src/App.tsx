@@ -8,6 +8,7 @@ import {
     indices5,
     isAsciiLowercaseChar,
     type Letter,
+    makeFsArray,
     toChar,
     toLetter,
     type Word,
@@ -17,21 +18,29 @@ import { searchWords } from './wordList';
 
 export default App;
 
+// debug
+declare global {
+    var guesses: WordGuess[];
+    var lastConstraint: Constraint;
+}
+
 function App() {
     const makeStoreWord = () => createStore(new WordGuess())[0];
     const [guesses, setGuesses] = createStore([
         makeStoreWord(),
         makeStoreWord(),
         makeStoreWord(),
+        makeStoreWord(),
+        makeStoreWord(),
+        makeStoreWord(),
     ]);
-    Object.assign(globalThis, { guesses });
+    globalThis.guesses = guesses;
 
     {
         const gs = JSON.parse(
             localStorage.getItem('wordleinputstate') ?? '',
         ) as WordGuess[];
 
-        // '[{"colors":[0,0,0,2,2],"letters":[2,11,20,4,3]},{"colors":[0,0,1,2,2],"letters":[19,0,12,4,3]},{"colors":[1,0,0,2,2],"letters":[12,14,21,4,3]}]',
         gs.forEach((g, i) => {
             setGuesses(i, 'letters', g.letters);
             setGuesses(i, 'colors', g.colors);
@@ -47,9 +56,7 @@ function App() {
     });
 
     const listener = (ev: KeyboardEvent) => {
-        if (ev.ctrlKey) {
-            return;
-        } else if (ev.key === 'Tab') {
+        if (ev.key === 'Tab') {
             ev.preventDefault();
         } else if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
             let offset = ev.key === 'ArrowUp' ? -1 : 1;
@@ -60,7 +67,8 @@ function App() {
             let offset = ev.key === 'ArrowLeft' ? -1 : 1;
             setActive('letter', li => Math.max(0, Math.min(4, li + offset)));
         } else if (ev.key === 'Backspace' && ev.ctrlKey) {
-            setGuesses(active.word, 'letters', [0, 1, 2, 3, 4], null);
+            setGuesses(active.word, 'letters', indices5, null);
+            setGuesses(active.word, 'colors', indices5, Color.BLANK);
             setActive('letter', 0);
         } else if (ev.key === 'Backspace') {
             if (guesses[active.word]?.letters[active.letter] !== null) {
@@ -72,6 +80,8 @@ function App() {
                 setActive('word', wi => wi - 1);
             }
             setGuesses(active.word, 'letters', active.letter, null);
+        } else if (ev.key === ' ' && ev.ctrlKey) {
+            setGuesses(active.word, 'colors', makeFsArray(5, Color.BLANK));
         } else if (ev.key === ' ' || ev.key === '-' || ev.key === '=') {
             const color =
                 ev.key === '-'
@@ -120,6 +130,8 @@ function App() {
                 (acc, c) => acc.merge(new Constraint(c)),
                 new Constraint(),
             );
+            console.log(constraint.toString());
+            globalThis.lastConstraint = constraint;
             for (const word of searchWords(constraint)) {
                 n += 1;
                 if (results.length < MAX_RESULTS_COUNT) {
@@ -153,46 +165,17 @@ function App() {
 
     return (
         <>
-            <section id="mismatches">
-                <span>Debugging</span>
-                <span>Solution</span>
-                <span>Guess</span>
-                <For each={mismatches}>
-                    {([solution, guess]) => {
-                        return (
-                            <>
-                                <span>{solution.map(toChar).join('')}</span>
-                                <div>
-                                    <For each={indices5}>
-                                        {i => (
-                                            <span
-                                                classList={{
-                                                    green:
-                                                        guess.colors[i] === Color.GREEN,
-                                                    yellow:
-                                                        guess.colors[i] === Color.YELLOW,
-                                                }}
-                                            >
-                                                {guess.letters[i] !== null
-                                                    ? toChar(guess.letters[i])
-                                                    : '_'}
-                                            </span>
-                                        )}
-                                    </For>
-                                </div>
-                            </>
-                        );
-                    }}
-                </For>
-            </section>
-            <section>
-                <h1>What the</h1>
+            <section id="first-section">
+                <h1>dewordler</h1>
                 <div id="input">
                     <For each={guesses}>
                         {(word, wi) => (
                             <div
                                 class="word"
-                                classList={{ active: wi() === active.word }}
+                                classList={{
+                                    active: wi() === active.word,
+                                    // invalid: wi() == 1,
+                                }}
                             >
                                 {indices5.map(li => (
                                     <div
@@ -217,8 +200,11 @@ function App() {
                         )}
                     </For>
                 </div>
-
-                <button onclick={updateResults}>Search</button>
+            </section>
+            <section id="second-section">
+                <button id="search" onclick={updateResults}>
+                    Search
+                </button>
                 <Show when={error() !== ''}>
                     <div id="error">{error()}</div>
                 </Show>
@@ -231,6 +217,42 @@ function App() {
                     </Show>
                 </div>
             </section>
+            <Show when={mismatches.length != 0}>
+                <section id="mismatches">
+                    <span>Debugging</span>
+                    <span>Solution</span>
+                    <span>Guess</span>
+                    <For each={mismatches}>
+                        {([solution, guess]) => {
+                            return (
+                                <>
+                                    <span>{solution.map(toChar).join('')}</span>
+                                    <div>
+                                        <For each={indices5}>
+                                            {i => (
+                                                <span
+                                                    classList={{
+                                                        green:
+                                                            guess.colors[i] ===
+                                                            Color.GREEN,
+                                                        yellow:
+                                                            guess.colors[i] ===
+                                                            Color.YELLOW,
+                                                    }}
+                                                >
+                                                    {guess.letters[i] !== null
+                                                        ? toChar(guess.letters[i])
+                                                        : '_'}
+                                                </span>
+                                            )}
+                                        </For>
+                                    </div>
+                                </>
+                            );
+                        }}
+                    </For>
+                </section>
+            </Show>
         </>
     );
 }

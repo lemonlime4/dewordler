@@ -1,11 +1,28 @@
-:root {
-    font-family: system-ui;
-    /* line-height: 1.5; */
-    /* font-weight: 400; */
+button {
+    all: unset;
+}
 
-    color-scheme: light dark;
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #242424;
+:root {
+    --bg: #111111;
+    --fg: #f0f0f0;
+    --l-selected: oklch(0.3 0 0);
+    --l-blank: black;
+    --l-yellow: oklch(60% 45% 92deg);
+    --l-green: oklch(55% 45% 138deg);
+
+    --font-1: 'Libre Baskerville';
+    --font-2: 'Source Code Pro';
+    --font-3: 'DM Sans';
+}
+
+:root {
+    font-family: var(--font-1);
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: dark;
+    background: var(--bg);
+    color: var(--fg);
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -16,7 +33,7 @@
 body {
     margin: 0;
     display: flex;
-    flex-flow: row-reverse nowrap;
+    flex-flow: row nowrap;
     place-items: center;
     place-content: center;
     gap: 2em;
@@ -27,36 +44,4 @@ body {
 h1 {
     font-size: 3.2em;
     line-height: 1.1;
-}
-
-button {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    background-color: #1a1a1a;
-    cursor: pointer;
-    transition: border-color 0.25s;
-}
-button:hover {
-    border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-    outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-    :root {
-        color: #213547;
-        background-color: #ffffff;
-    }
-    a:hover {
-        color: #747bff;
-    }
-    button {
-        background-color: #f9f9f9;
-    }
 }

@@ -36,9 +36,13 @@ function excludeConstraint(exclude: Letter[]): ExcludeConstraint {
     };
 }
 
-let logging = false;
+// debug
+declare global {
+    var logging: boolean;
+}
+globalThis.logging = false;
 function log(...args: unknown[]) {
-    if (logging) console.log(...args);
+    if (globalThis.logging) console.log(...args);
 }
 
 export class Constraint {
@@ -105,12 +109,36 @@ export class Constraint {
                 this.exact[letter] = true;
             }
         }
-        console.log(this);
+    }
+
+    toString() {
+        let count_reqs = [];
+        for (const [l, min, exact] of zip(indices26, this.min_count, this.exact)) {
+            if (min === 0) continue;
+            const rel = exact ? '=' : '≥';
+            count_reqs.push(`${toChar(l)} ${rel} ${min}`);
+        }
+        let pos_reqs = this.positional.map((lc, i) => {
+            let cons;
+            if (lc.tag == 'exact') {
+                cons = toChar(lc.exact);
+            }
+            if (lc.tag == 'exclude') {
+                cons = `\\ ${lc.exclude
+                    .map((b, l) => (b ? toChar(l as Letter) : null))
+                    .filter(x => x !== null)
+                    .join(' ')}`;
+            }
+            return `L${i + 1}: ${cons}`;
+        });
+        return `Constraint:\n${count_reqs.join(', ')}\n${pos_reqs.join('\n')}`;
     }
 
     merge(other: Constraint): this {
         // todo: error when same letter is colored differently in same position
+        // ^ this doesn't apply in the case of yellow double letters
         // todo: error when result constraint is impossible to satisfy
+        // - a letter is green more times than its exact count
 
         for (const [l, m1, m2, e1, e2] of zip(
             indices26,
@@ -159,24 +187,32 @@ export class Constraint {
                 }
             }
         }
-
-        console.log(this);
         return this;
     }
 
     satisfiedBy(word: Word): boolean {
         const occurrences = makeFsArray(26, 0);
         for (const letter of word) occurrences[letter] += 1;
-        for (const [min, n, exact] of zip(this.min_count, occurrences, this.exact)) {
-            if ((exact && min !== n) || (!exact && n < min)) return false;
+        for (const [l, min, n, exact] of zip(
+            indices26,
+            this.min_count,
+            occurrences,
+            this.exact,
+        )) {
+            if ((exact && min !== n) || (!exact && n < min)) {
+                log(toChar(l), exact, min, n);
+                return false;
+            }
         }
 
         for (const [letter, cons] of zip(word, this.positional)) {
             if (
                 (cons.tag === 'exact' && letter !== cons.exact) ||
                 (cons.tag === 'exclude' && cons.exclude[letter])
-            )
+            ) {
+                log(toChar(letter), cons);
                 return false;
+            }
         }
         return true;
     }
