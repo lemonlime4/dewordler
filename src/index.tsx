@@ -3,6 +3,6 @@ import { render } from 'solid-js/web';
 import App from './App.tsx';
 import './index.css';
 
-const root = document.body;
+const root = document.querySelector('#root');
 
 render(() => <App />, root!);

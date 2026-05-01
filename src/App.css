@@ -1,3 +1,20 @@
+#root {
+    display: flex;
+    flex-flow: row nowrap;
+    width: 60%;
+    gap: 3em;
+}
+#column-left,
+#column-right {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: start;
+}
+
+#column-right {
+    margin-top: 2em;
+}
+
 #input {
     display: flex;
     flex-flow: column nowrap;
@@ -32,15 +49,15 @@
 
 .word:is(.active, .invalid) .letter {
     --border-opacity: 0.3;
+    &.active {
+        --border-opacity: 0.8 !important;
+        border-color: var(--fg);
+    }
     background: var(--l-selected);
     &:is(.yellow, .green) {
-        border-color: var(--color);
+        border-color: oklch(from var(--color) 0.9 c h / var(--border-opacity));
         background: oklch(from var(--color) calc(l * 0.7) calc(c * 0.5) h);
     }
-}
-.letter.active {
-    --border-opacity: 0.8;
-    border-color: var(--fg) !important;
 }
 .word.invalid {
     color: color-mix(in oklab, var(--fg), var(--bg) 30%);
@@ -51,6 +68,27 @@
 }
 .green {
     --color: var(--l-green);
+}
+
+#buttons {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1em;
+}
+
+#buttons button {
+    font-family: var(--font-3);
+    font-size: 1.2em;
+    font-weight: 600;
+    text-decoration: underline;
+    display: block;
+    padding: 1rem 0;
+    text-align: center;
+    background: black;
+    &:hover {
+        background: oklch(0.8 0.1 200deg / 0.2);
+        /* background: red; */
+    }
 }
 
 #results,
@@ -71,7 +109,7 @@
 }
 
 #results {
-    /* font-family: var(--font-1); */
+    font-family: var(--font-1);
 }
 .result-item {
     padding: 0.25em 0.5em;
@@ -86,36 +124,20 @@
 
 /* debug */
 #mismatches {
+    position: fixed;
+    inset: 1em auto auto 1em;
+    background: rgb(0 0 0 / 0.8);
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1em;
     font-family: monospace;
 
+    span:is(.yellow, .green) {
+        background: var(--color);
+    }
+
     & > :first-child {
         color: red;
         grid-column: 1 / 3;
-    }
-}
-
-body > #second-section {
-    width: 30%;
-    display: flex;
-    flex-flow: column nowrap;
-    place-items: center;
-    align-items: stretch;
-}
-
-button#search {
-    font-family: var(--font-3);
-    font-size: 1.2em;
-    font-weight: 600;
-    text-decoration: underline;
-    display: block;
-    padding: 1rem 0;
-    text-align: center;
-    background: black;
-    &:hover {
-        background: oklch(0.8 0.1 200deg / 0.2);
-        /* background: red; */
     }
 }

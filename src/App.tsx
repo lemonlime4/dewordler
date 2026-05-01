@@ -6,6 +6,7 @@ import { Constraint, WordleInputError } from './constraint';
 import {
     Color,
     indices5,
+    type IntInRange,
     isAsciiLowercaseChar,
     type Letter,
     makeFsArray,
@@ -14,7 +15,7 @@ import {
     type Word,
     WordGuess,
 } from './word';
-import { searchWords } from './wordList';
+import { searchWords, wordList } from './wordList';
 
 export default App;
 
@@ -60,26 +61,33 @@ function App() {
             ev.preventDefault();
         } else if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
             let offset = ev.key === 'ArrowUp' ? -1 : 1;
-            setActive('word', wi =>
+            setActive('word', (wi) =>
                 Math.max(0, Math.min(guesses.length - 1, wi + offset)),
             );
         } else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
             let offset = ev.key === 'ArrowLeft' ? -1 : 1;
-            setActive('letter', li => Math.max(0, Math.min(4, li + offset)));
+            setActive('letter', (li) => Math.max(0, Math.min(4, li + offset)));
+        } else if (ev.key === 'Enter' && ev.ctrlKey) {
+            updateResults();
+        } else if (ev.key == 'Enter') {
+            setActive('word', (wi) => Math.min(6, wi + 1));
+            setActive('letter', 0);
         } else if (ev.key === 'Backspace' && ev.ctrlKey) {
             setGuesses(active.word, 'letters', indices5, null);
             setGuesses(active.word, 'colors', indices5, Color.BLANK);
             setActive('letter', 0);
         } else if (ev.key === 'Backspace') {
-            if (guesses[active.word]?.letters[active.letter] !== null) {
-                // keep active letter where it is
-            } else if (active.letter > 0) {
-                setActive('letter', li => li - 1);
-            } else if (active.word > 0) {
-                setActive('letter', 4);
-                setActive('word', wi => wi - 1);
+            if (guesses[active.word]?.letters[active.letter] === null) {
+                // move active
+                if (active.letter > 0) {
+                    setActive('letter', (li) => li - 1);
+                } else if (active.word > 0) {
+                    setActive('letter', 4);
+                    setActive('word', (wi) => wi - 1);
+                }
             }
             setGuesses(active.word, 'letters', active.letter, null);
+            setGuesses(active.word, 'colors', active.letter, Color.BLANK);
         } else if (ev.key === ' ' && ev.ctrlKey) {
             setGuesses(active.word, 'colors', makeFsArray(5, Color.BLANK));
         } else if (ev.key === ' ' || ev.key === '-' || ev.key === '=') {
@@ -90,21 +98,31 @@ function App() {
                       ? Color.GREEN
                       : Color.BLANK;
             setGuesses(active.word, 'colors', active.letter, color);
-        } else {
+        } else if (!ev.ctrlKey) {
             const letter = readLetter(ev);
-            if (letter !== undefined) {
+            if (letter !== null) {
                 setGuesses(active.word, 'letters', active.letter, letter);
 
                 // advance selection
                 if (
                     active.word < guesses.length - 1 &&
-                    guesses[active.word]?.letters.every(l => l !== null)
+                    guesses[active.word]?.letters.every((l) => l !== null)
                 ) {
-                    setActive('word', wi => wi + 1);
+                    setActive('word', (wi) => wi + 1);
                     setActive('letter', 0);
                 } else if (active.letter !== 4) {
-                    setActive('letter', li => li + 1);
+                    setActive('letter', (li) => li + 1);
                 }
+            }
+            const index = readIndex(ev);
+            if (index !== null) {
+                setGuesses(
+                    active.word,
+                    'colors',
+                    index,
+                    (color) => ((color + 1) % 3) as Color,
+                );
+                setActive('letter', index);
             }
         }
     };
@@ -125,7 +143,7 @@ function App() {
         try {
             const results: string[] = [];
             let n = 0;
-            const filledGuesses = guesses.filter(guess => guess.isFilled());
+            const filledGuesses = guesses.filter((guess) => guess.isFilled());
             const constraint = filledGuesses.reduce(
                 (acc, c) => acc.merge(new Constraint(c)),
                 new Constraint(),
@@ -163,9 +181,15 @@ function App() {
 
     updateResults();
 
+    function clearInput() {
+        const indices = [...Array(guesses.length).keys()];
+        setGuesses(indices, 'letters', indices5, null);
+        setGuesses(indices, 'colors', indices5, Color.BLANK);
+    }
+
     return (
         <>
-            <section id="first-section">
+            <div id="column-left">
                 <h1>dewordler</h1>
                 <div id="input">
                     <For each={guesses}>
@@ -177,7 +201,7 @@ function App() {
                                     // invalid: wi() == 1,
                                 }}
                             >
-                                {indices5.map(li => (
+                                {indices5.map((li) => (
                                     <div
                                         class="letter"
                                         classList={{
@@ -200,23 +224,29 @@ function App() {
                         )}
                     </For>
                 </div>
-            </section>
-            <section id="second-section">
-                <button id="search" onclick={updateResults}>
-                    Search
-                </button>
+            </div>
+            <div id="column-right">
+                <div id="buttons">
+                    <button id="search" onclick={updateResults}>
+                        Search
+                    </button>
+                    <button id="reset" onclick={clearInput}>
+                        Reset
+                    </button>
+                </div>
                 <Show when={error() !== ''}>
                     <div id="error">{error()}</div>
                 </Show>
                 <div id="results">
-                    {results().map(s => (
+                    {results().map((s) => (
                         <span class="result-item">{s}</span>
                     ))}
                     <Show when={overflow() !== 0}>
                         <span id="result-overflow">{overflow()} more words...</span>
                     </Show>
                 </div>
-            </section>
+            </div>
+
             <Show when={mismatches.length != 0}>
                 <section id="mismatches">
                     <span>Debugging</span>
@@ -229,7 +259,7 @@ function App() {
                                     <span>{solution.map(toChar).join('')}</span>
                                     <div>
                                         <For each={indices5}>
-                                            {i => (
+                                            {(i) => (
                                                 <span
                                                     classList={{
                                                         green:
@@ -257,14 +287,23 @@ function App() {
     );
 }
 
-function readLetter(ev: KeyboardEvent): Letter | undefined {
+function readLetter(ev: KeyboardEvent): Letter | null {
     // filter out control keys
-    if (/^[\x00-\x7f]{2,}$/.test(ev.key)) return;
+    if (/^[\x00-\x7f]{2,}$/.test(ev.key)) return null;
 
     const letters = [...ev.key.normalize('NFKD')]
-        .map(s => s.toLowerCase())
+        .map((s) => s.toLowerCase())
         .filter(isAsciiLowercaseChar)
         .map(toLetter);
     // console.log(letters.map(toChar).join(''));
-    return letters[0];
+    return letters[0] ?? null;
+}
+
+function readIndex(ev: KeyboardEvent): IntInRange<5> | null {
+    if (ev.key.length !== 1) return null;
+    const n = ev.key.charCodeAt(0) - 49;
+    if (0 <= n && n <= 5) {
+        return n as IntInRange<5>;
+    }
+    return null;
 }
