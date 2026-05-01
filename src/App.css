@@ -1,18 +1,14 @@
 #root {
-    display: flex;
-    flex-flow: row nowrap;
+    display: grid;
     width: 60%;
-    gap: 3em;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    grid-auto-flow: column;
+    row-gap: 1em;
+    column-gap: 3em;
 }
-#column-left,
-#column-right {
-    display: flex;
-    flex-flow: column nowrap;
-    justify-content: start;
-}
-
-#column-right {
-    margin-top: 2em;
+h1 {
+    margin: 0;
 }
 
 #input {
@@ -75,7 +71,6 @@
     grid-template-columns: 2fr 1fr;
     gap: 1em;
 }
-
 #buttons button {
     font-family: var(--font-3);
     font-size: 1.2em;
@@ -91,20 +86,29 @@
     }
 }
 
+#results-and-error {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: 1em;
+    /* max-width: 100%; */
+    /* overflow-y: scroll; */
+}
+
 #results,
 #error {
-    margin-top: 1em;
     padding: 1em 2em;
+}
+
+#results {
     display: flex;
     flex-flow: row wrap;
     justify-content: center;
     gap: 0.5em;
-}
-
-#results {
     background: rgb(0 0 0 / 0.5);
 }
+
 #error {
+    text-align: center;
     background: oklch(from var(--bg) l 80% 10deg);
 }
 

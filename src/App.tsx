@@ -129,7 +129,7 @@ function App() {
     window.addEventListener('keydown', listener);
     onCleanup(() => window.removeEventListener('keydown', listener));
 
-    const MAX_RESULTS_COUNT = 15;
+    const MAX_RESULTS_COUNT = 20;
     const [results, setResults] = createSignal<string[]>([]);
     const [overflow, setOverflow] = createSignal(0);
     const [error, setError] = createSignal('');
@@ -189,51 +189,49 @@ function App() {
 
     return (
         <>
-            <div id="column-left">
-                <h1>dewordler</h1>
-                <div id="input">
-                    <For each={guesses}>
-                        {(word, wi) => (
-                            <div
-                                class="word"
-                                classList={{
-                                    active: wi() === active.word,
-                                    // invalid: wi() == 1,
-                                }}
-                            >
-                                {indices5.map((li) => (
-                                    <div
-                                        class="letter"
-                                        classList={{
-                                            green: word.colors[li] === Color.GREEN,
-                                            yellow: word.colors[li] === Color.YELLOW,
-                                            active:
-                                                wi() === active.word &&
-                                                li === active.letter,
-                                        }}
-                                    >
-                                        <span>
-                                            {((l: Letter | null) =>
-                                                l !== null
-                                                    ? toChar(l).toUpperCase()
-                                                    : '')(word.letters[li])}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </For>
-                </div>
+            <h1>dewordler</h1>
+            <div id="input">
+                <For each={guesses}>
+                    {(word, wi) => (
+                        <div
+                            class="word"
+                            classList={{
+                                active: wi() === active.word,
+                                // invalid: wi() == 1,
+                            }}
+                        >
+                            {indices5.map((li) => (
+                                <div
+                                    class="letter"
+                                    classList={{
+                                        green: word.colors[li] === Color.GREEN,
+                                        yellow: word.colors[li] === Color.YELLOW,
+                                        active:
+                                            wi() === active.word && li === active.letter,
+                                    }}
+                                >
+                                    <span>
+                                        {((l: Letter | null) =>
+                                            l !== null ? toChar(l).toUpperCase() : '')(
+                                            word.letters[li],
+                                        )}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </For>
             </div>
-            <div id="column-right">
-                <div id="buttons">
-                    <button id="search" onclick={updateResults}>
-                        Search
-                    </button>
-                    <button id="reset" onclick={clearInput}>
-                        Reset
-                    </button>
-                </div>
+
+            <div id="buttons">
+                <button id="search" onclick={updateResults}>
+                    Search
+                </button>
+                <button id="reset" onclick={clearInput}>
+                    Reset
+                </button>
+            </div>
+            <div id="results-and-error">
                 <Show when={error() !== ''}>
                     <div id="error">{error()}</div>
                 </Show>
