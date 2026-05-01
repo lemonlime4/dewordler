@@ -39,7 +39,7 @@ function App() {
 
     {
         const gs = JSON.parse(
-            localStorage.getItem('wordleinputstate') ?? '',
+            localStorage.getItem('wordleinputstate') ?? '[]',
         ) as WordGuess[];
 
         gs.forEach((g, i) => {

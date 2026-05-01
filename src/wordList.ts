@@ -7,10 +7,12 @@ import {
     type Word,
 } from './word';
 
-const wordListBytes: Uint8Array = await fetch('/valid-wordle-words.txt')
-    .then(r => r.text())
+const wordListBytes: Uint8Array = await fetch(
+    `${import.meta.env.BASE_URL}valid-wordle-words.txt`,
+)
+    .then((r) => r.text())
     .then(
-        wordListStr =>
+        (wordListStr) =>
             new Uint8Array(
                 (function* (): Generator<Letter> {
                     // console.log(wordListStr);
