@@ -1,14 +1,29 @@
+* {
+    min-height: 0;
+}
 #root {
     display: grid;
-    width: 60%;
+    height: 30em;
+    width: clamp(40em, 60%, 50em);
     grid-template-columns: auto 1fr;
     grid-template-rows: auto auto;
     grid-auto-flow: column;
     row-gap: 1em;
     column-gap: 3em;
 }
+h1,
+#buttons {
+    align-self: end;
+}
+#input,
+#results-and-error {
+    align-self: start;
+}
 h1 {
     margin: 0;
+}
+h2 {
+    margin-top: 0;
 }
 
 #input {
@@ -66,23 +81,47 @@ h1 {
     --color: var(--l-green);
 }
 
+#info {
+    overflow-y: auto;
+}
+
 #buttons {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 1em;
-}
-#buttons button {
-    font-family: var(--font-3);
-    font-size: 1.2em;
-    font-weight: 600;
-    text-decoration: underline;
-    display: block;
-    padding: 1rem 0;
-    text-align: center;
-    background: black;
-    &:hover {
-        background: oklch(0.8 0.1 200deg / 0.2);
-        /* background: red; */
+
+    & button {
+        font-family: var(--font-3);
+        font-size: 1.2em;
+        font-weight: 600;
+        text-decoration: underline;
+        display: block;
+        padding: 1rem 0;
+        text-align: center;
+        background: black;
+        &:hover {
+            background: oklch(0.8 0.1 200deg / 0.2);
+            /* background: red; */
+        }
+    }
+
+    position: relative;
+    inset: 0 auto auto 0;
+    & #info-toggle {
+        display: block;
+        padding: 0;
+        width: 3em;
+        height: 3em;
+        text-decoration: none;
+        position: absolute;
+        left: calc(1em + 100%);
+        color: oklab(1 0 0 / 0.5);
+        &.showing-info {
+            color: white;
+            &:not(:hover) {
+                background: oklab(1 0 0 / 0.1);
+            }
+        }
     }
 }
 
@@ -90,13 +129,13 @@ h1 {
     display: flex;
     flex-flow: column nowrap;
     gap: 1em;
-    /* max-width: 100%; */
-    /* overflow-y: scroll; */
+    height: 100%;
 }
 
 #results,
 #error {
     padding: 1em 2em;
+    min-height: auto;
 }
 
 #results {
@@ -105,6 +144,7 @@ h1 {
     justify-content: center;
     gap: 0.5em;
     background: rgb(0 0 0 / 0.5);
+    overflow-y: auto;
 }
 
 #error {

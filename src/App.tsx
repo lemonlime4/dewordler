@@ -129,7 +129,7 @@ function App() {
     window.addEventListener('keydown', listener);
     onCleanup(() => window.removeEventListener('keydown', listener));
 
-    const MAX_RESULTS_COUNT = 20;
+    const MAX_RESULTS_COUNT = 50;
     const [results, setResults] = createSignal<string[]>([]);
     const [overflow, setOverflow] = createSignal(0);
     const [error, setError] = createSignal('');
@@ -187,6 +187,8 @@ function App() {
         setGuesses(indices, 'colors', indices5, Color.BLANK);
     }
 
+    let [infoVisible, setInfoVisible] = createSignal(true);
+
     return (
         <>
             <h1>dewordler</h1>
@@ -230,19 +232,54 @@ function App() {
                 <button id="reset" onclick={clearInput}>
                     Reset
                 </button>
+                <button
+                    id="info-toggle"
+                    classList={{ 'showing-info': infoVisible() }}
+                    onclick={() => setInfoVisible((b) => !b)}
+                >
+                    ?
+                </button>
             </div>
             <div id="results-and-error">
-                <Show when={error() !== ''}>
-                    <div id="error">{error()}</div>
+                <Show when={infoVisible()}>
+                    <div id="info">
+                        <h2>How to use</h2>
+                        <p>
+                            Letter keys, backspace, and arrow keys work mostly as
+                            expected. Ctrl + Backspace deletes the whole word. To input
+                            colors, you can:
+                        </p>
+                        <ul>
+                            <li>
+                                use minus, plus, and spacebar to change the letter's color
+                                to yellow, green and blank;
+                            </li>
+                            <li>
+                                use number keys 1-5 to cycle through the color at that
+                                letter;
+                            </li>
+                            <li>click letters to cycle through colors.</li>
+                        </ul>
+                        <p>
+                            Finally, words with missing letters will be ignored during
+                            search.
+                        </p>
+                        <p>No, there is no mobile support yet. Sorry.</p>
+                    </div>
                 </Show>
-                <div id="results">
-                    {results().map((s) => (
-                        <span class="result-item">{s}</span>
-                    ))}
-                    <Show when={overflow() !== 0}>
-                        <span id="result-overflow">{overflow()} more words...</span>
+                <Show when={!infoVisible()}>
+                    <Show when={error() !== ''}>
+                        <div id="error">{error()}</div>
                     </Show>
-                </div>
+                    <div id="results">
+                        {results().map((s) => (
+                            <span class="result-item">{s}</span>
+                        ))}
+                        <Show when={overflow() !== 0}>
+                            <span id="result-overflow">{overflow()} more words...</span>
+                        </Show>
+                    </div>
+                </Show>
             </div>
 
             <Show when={mismatches.length != 0}>

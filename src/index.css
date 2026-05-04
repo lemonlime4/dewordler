@@ -3,10 +3,10 @@ button {
 }
 
 :root {
-    --bg: #111111;
+    --bg: rgb(15 15 30); /* why is oklch so bad with low brightness colors? x*/
     --fg: #f0f0f0;
-    --l-selected: oklch(0.3 0 0);
-    --l-blank: black;
+    --l-selected: oklch(0.25 0.02 250);
+    --l-blank: oklch(0.1 0.05 250);
     --l-yellow: oklch(60% 45% 92deg);
     --l-green: oklch(55% 45% 138deg);
 
@@ -44,4 +44,5 @@ body {
 h1 {
     font-size: 3.2em;
     line-height: 1.1;
+    text-align: center;
 }
