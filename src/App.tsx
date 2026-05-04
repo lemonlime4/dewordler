@@ -259,11 +259,11 @@ function App() {
                         </p>
                         <ul>
                             <li>
-                                use minus, plus, and spacebar to change the letter's color
-                                to yellow, green and blank;
+                                type minus, plus, and spacebar to change the letter's
+                                color to yellow, green and blank;
                             </li>
                             <li>
-                                use number keys 1-5 to cycle through the color at that
+                                type numbers 1-5 to cycle through the color at that
                                 letter;
                             </li>
                             <li>click letters to cycle through colors.</li>
